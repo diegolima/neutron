@@ -245,16 +245,23 @@ class L3NATAgent(firewall_l3_agent.FWaaSL3AgentRpcCallback, manager.Manager):
         for multiple l3 agents on the same host, without stepping on each
         other's toes on init.  This only makes sense if router_id is set.
         """
+        only_router_id=only_router_id.split(",")
         root_ip = ip_lib.IPWrapper(self.root_helper)
         for ns in root_ip.get_namespaces(self.root_helper):
             if ns.startswith(NS_PREFIX):
-                if only_router_id and not ns.endswith(only_router_id):
-                    continue
-
-                try:
-                    self._destroy_router_namespace(ns)
-                except Exception:
-                    LOG.exception(_("Failed deleting namespace '%s'"), ns)
+                if only_router_id:
+                        for specific_router_id in only_router_id:
+                                if ns.endswith(specific_router_id):
+                                    try:
+                                        self._destroy_router_namespace(ns)
+                                        LOG.error(_("Deleted namespace '%s'"), ns)
+                                    except Exception:
+                                        LOG.exception(_("Failed deleting namespace '%s'"), ns)
+                else:
+                    try:
+                        self._destroy_router_namespace(ns)
+                    except Exception:
+                        LOG.exception(_("Failed deleting namespace '%s'"), ns)
 
     def _destroy_router_namespace(self, namespace):
         ns_ip = ip_lib.IPWrapper(self.root_helper, namespace=namespace)
